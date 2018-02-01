@@ -9,12 +9,31 @@ import pandas as pd
 import numpy as np
 import re
 import os
+import pickle
 
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.cluster import KMeans
 
 from collections import Counter
+from collections import defaultdict
+
+
+import networkx as nx
+import matplotlib.pyplot as plt
+
+
+
+#保存和读取中间文件
+def save_object(name,object):
+    with open("{}.pkl".format(name),"wb") as f:
+        pickle.dump(object,f)
+
+def read_object(filename):
+    with open(filename,"rb") as f:
+        object = pickle.load(f)
+    return object
+
 
 
 # 清洗无用字符,用"_"代替非单词字符
@@ -49,10 +68,10 @@ def clear_log(day_log):
 def load_log(filename):
 
     documents = []
-    count = 0
+    #count = 0
     with open(filename, mode="r", errors="replace") as f:
         while True:
-            count += 1
+            #count += 1
             line = f.readline().split(",")
             head = line[0].split()
 
@@ -107,41 +126,77 @@ def tfidf_main(documents):
             print words[j],weight[i][j] 
     """
 
-    
-    with open("word.txt", "w") as f:
-        for word in words:
-            f.write(word + "\n")
+    save_object("words",words)
 
     return tfidf_vectors
 
 
+# 计算两个向量之间的距离
+def distance(a, b):
+    sum = 0
+    for i, j in zip(a, b):
+        sum += (abs(i - j) ** 2)
+
+    return sum ** 0.5
+
+
+#创建以重心为点，重心间的距离为边的图
+def create_graph(node_list):
+    G = nx.Graph() 
+    G.add_weighted_edges_from(node_list)
+    nx.draw(G,pos = nx.random_layout(G),node_color = 'b',edge_color = 'r',with_labels = True,font_size =18,node_size =20)
+    plt.savefig("graph.png")
+    #plt.show()
+
+
+# processing center of gravity
+def center_of_gravity(kmeans):
+    centers = kmeans.cluster_centers_
+    node_list = []
+    for i in range(len(centers) - 1):
+        for j in range(i + 1, len(centers)):
+            node_list.append((i, j, distance(centers[i], centers[j])))
+
+    return node_list        
+
+
 # 使用聚类算法
-def kmeans_cluster(data, n_clusters=200):
-    kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(data)
+def kmeans_cluster(data, n_clusters=100):
+    kmeans = KMeans(init="k-means++", n_clusters=n_clusters, random_state=0).fit(data)
     labels = kmeans.labels_
+    node_list = center_of_gravity(kmeans)
+    create_graph(node_list)
+
+
     assert(len(labels) == data.shape[0])
 
-    with open("labels.txt", "w") as f:
-        for label in labels:
-            f.write(str(label) + "\n")
+    save_object("labels",labels)
 
     return labels
 
 
 # 统计不同类别的 labels, 返回频率最低的 n 个类别
-def processing_labels(labels, n=2):
-    lower = []
+def create_log_tag(labels,filename):
     label_dict = Counter(labels)
     sorted_labels = sorted(label_dict.items(), key=lambda item: item[1])
+    save_object("label_info",sorted_labels)
 
-    print(sorted_labels)
-    result = [x[0] for x in sorted_labels[0:n]]
-    print(result)
+    log_dict = defaultdict(list) 
+    index = 0
 
-    return result
+    with open(filename, mode="r", errors="replace") as f:
+        while True:
+            line = f.readline()
+            if not line:
+                break
+            log_dict[labels[index]].append(line)    
+            index+= 1 
 
+    save_object("log_database",log_dict)        
+    return log_dict
 
-def get_exception_record(filename,lower_freq_labels,labels):
+"""
+def get_exception_record(filename, lower_freq_labels, labels):
     masks = []
     for label in labels:
         if label in lower_freq_labels:
@@ -149,29 +204,23 @@ def get_exception_record(filename,lower_freq_labels,labels):
         else:
             masks.append(0)
 
-
-    with open("exception_logs.txt","w") as ex_f:
+    
         with open(filename, mode="r", errors="replace") as log_f:
             for decision in masks:
                 line = log_f.readline()
                 if decision:
                     ex_f.write(line)
-
-
-
-
+"""
 
 def main():
 
     filename = "GX01-USG5530-1"
     #data = load_log(filename)
-    #kmeans_cluster(data)
+    # kmeans_cluster(data)
     documents = load_log(filename)
     tfidf_vectors = tfidf_main(documents)
-    labels = kmeans_cluster(tfidf_vectors)
-    lower_freq_labels = processing_labels(labels)
-    get_exception_record(filename,lower_freq_labels,labels)
-
+    labels = kmeans_cluster(tfidf_vectors,n_clusters=100)
+    log_dict = create_log_tag(labels,filename)
 
 
 if __name__ == '__main__':
