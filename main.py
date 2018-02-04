@@ -240,8 +240,8 @@ def main():
 
 
 if __name__ == '__main__':
-    filename = "GX01-USG5530-1"
-    clusters = 10
-    #filename = sys.argv[1]
-    #clusters = int(sys.argv[2])
+    #filename = "GX01-USG5530-1"
+    #clusters = 10
+    filename = sys.argv[1]
+    clusters = int(sys.argv[2])
     main()
