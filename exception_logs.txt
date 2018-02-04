@@ -1,2 +1,0 @@
-Jul 28 18:36:41 2017-07-28 10: 34:21 GX01-USG5530-1 %%01HWCM/4/EXIT(l):  Exit from configure mode.
-Aug  1 00:00:00 2017-07-31 15: 55:25 GX01-USG5530-1 %%01SEC/4/POLICYDENY(l): protocol=1, source-ip=10.207.4.253, source-port=0, destination-ip=10.192.0.6, destination-port=0, time=2017/07/31 23:55:25, interzone-untrust(public)-trust(public) inbound, policy=3.#015

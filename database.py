@@ -8,11 +8,33 @@ import pickle
 import sys
 
 
-with open("log_database.pkl", "rb") as f:
+with open("{}".format(sys.argv[1]), "rb") as f:
     database = pickle.load(f)
 
-with open("label_info.pkl", "rb") as f:
+with open("{}/label.pkl".format(sys.argv[1].split("/")[0]), "rb") as f:
     label_info = pickle.load(f)
+
+
+num = 5
+
+with open("{}/result.txt".format(sys.argv[1].split("/")[0]),"w") as f:
+    f.write("log information: \n\n")
+    for item in label_info:
+        f.write("category {}, number: {}\n".format(item[0], item[1]))
+    f.write("\n----------------------------------------\n") 
+    f.write("\nthe example logs is: \n")
+
+    for category in label_info:
+        f.write("\ncategory {}\n".format(category[0]))
+        if num <= len(database[category[0]]):
+            for log in database[category[0]][0:num]:
+                f.write(log)
+        else:
+            for log in database[category[0]]:
+                f.write(log)
+
+
+
 
 print("\n----------------------------------------\n")
 print("\nlog information: \n")

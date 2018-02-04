@@ -10,6 +10,7 @@ import numpy as np
 import re
 import os
 import pickle
+import sys
 
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import CountVectorizer
@@ -19,20 +20,28 @@ from collections import Counter
 from collections import defaultdict
 
 
-import networkx as nx
-import matplotlib.pyplot as plt
+#import networkx as nx
+#import matplotlib.pyplot as plt
 
 
 
 #保存和读取中间文件
 def save_object(name,object):
-    with open("{}.pkl".format(name),"wb") as f:
+    with open("{}_{}_cache/{}.pkl".format(filename,clusters,name),"wb") as f:
         pickle.dump(object,f)
 
 def read_object(filename):
     with open(filename,"rb") as f:
         object = pickle.load(f)
     return object
+
+
+def save_txt(name,object):
+    with open("{}_{}_cache/{}.txt".format(filename,clusters,name),"w") as f:
+        for item in object:
+            f.write(str(item))
+            f.write("\n")    
+
 
 
 
@@ -126,8 +135,8 @@ def tfidf_main(documents):
             print words[j],weight[i][j] 
     """
 
-    save_object("words",words)
-
+    save_txt("words",words)
+    
     return tfidf_vectors
 
 
@@ -157,29 +166,31 @@ def center_of_gravity(kmeans):
         for j in range(i + 1, len(centers)):
             node_list.append((i, j, distance(centers[i], centers[j])))
 
-    return node_list        
+    return node_list 
 
 
 # 使用聚类算法
-def kmeans_cluster(data, n_clusters=100):
+def kmeans_cluster(data, n_clusters=10):
     kmeans = KMeans(init="k-means++", n_clusters=n_clusters, random_state=0).fit(data)
     labels = kmeans.labels_
     node_list = center_of_gravity(kmeans)
-    create_graph(node_list)
-
+    
+    #create_graph(node_list)
 
     assert(len(labels) == data.shape[0])
 
-    save_object("labels",labels)
+    #save_txt("labels",labels)
 
     return labels
 
 
-# 统计不同类别的 labels, 返回频率最低的 n 个类别
+#建立数据库
 def create_log_tag(labels,filename):
     label_dict = Counter(labels)
     sorted_labels = sorted(label_dict.items(), key=lambda item: item[1])
-    save_object("label_info",sorted_labels)
+    
+    #save_txt("{}_label".format(filename),sorted_labels)
+    save_object("label",sorted_labels)
 
     log_dict = defaultdict(list) 
     index = 0
@@ -192,7 +203,8 @@ def create_log_tag(labels,filename):
             log_dict[labels[index]].append(line)    
             index+= 1 
 
-    save_object("log_database",log_dict)        
+    save_object("database",log_dict) 
+
     return log_dict
 
 """
@@ -214,14 +226,22 @@ def get_exception_record(filename, lower_freq_labels, labels):
 
 def main():
 
-    filename = "GX01-USG5530-1"
     #data = load_log(filename)
     # kmeans_cluster(data)
+    if not os.path.exists("{}_{}_cache".format(filename,clusters)):
+        os.mkdir("{}_{}_cache".format(filename,clusters))
+
     documents = load_log(filename)
     tfidf_vectors = tfidf_main(documents)
-    labels = kmeans_cluster(tfidf_vectors,n_clusters=100)
+    labels = kmeans_cluster(tfidf_vectors,n_clusters=clusters)
     log_dict = create_log_tag(labels,filename)
+
+    print('database creating successful......')
 
 
 if __name__ == '__main__':
+    filename = "GX01-USG5530-1"
+    clusters = 10
+    #filename = sys.argv[1]
+    #clusters = int(sys.argv[2])
     main()
