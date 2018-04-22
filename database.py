@@ -11,52 +11,38 @@ import sys
 with open("{}".format(sys.argv[1]), "rb") as f:
     database = pickle.load(f)
 
-with open("{}/label.pkl".format(sys.argv[1].split("/")[0]), "rb") as f:
+with open("{}/labels_info.pkl".format(sys.argv[1].split("/")[0]), "rb") as f:
     label_info = pickle.load(f)
 
+while True:
 
-num = 5
-
-with open("{}/result.txt".format(sys.argv[1].split("/")[0]),"w") as f:
-    f.write("log information: \n\n")
+    print("\n----------------------------------------\n")
+    print("\nlog information: \n")
     for item in label_info:
-        f.write("category {}, number: {}\n".format(item[0], item[1]))
-    f.write("\n----------------------------------------\n") 
-    f.write("\nthe example logs is: \n")
+        print("category {}, number: {}".format(item[0], item[1]))
 
-    for category in label_info:
-        f.write("\ncategory {}\n".format(category[0]))
-        if num <= len(database[category[0]]):
-            for log in database[category[0]][0:num]:
-                f.write(log)
-        else:
-            for log in database[category[0]]:
-                f.write(log)
+    print("\n----------------------------------------\n")
+    print("please input a \"category\" and the \"number\" of logs you want to display: ")
+    content = input()
+
+    print("\n----------------------------------------\n")
+    print("\nthe example logs is: \n")
+
+    label, num = list(map(int, content.split(" ")))
 
 
+    if num <= len(database[label]):
+        for log in database[label][0:num]:
+            print(log)
+            
+    else:
+        for log in database[label]:
+            print(log)
+    print("\n----------------------------------------\n")  
 
-
-print("\n----------------------------------------\n")
-print("\nlog information: \n")
-for item in label_info:
-    print("category {}, number: {}".format(item[0], item[1]))
-
-print("\n----------------------------------------\n")
-print("please input a \"category\" and the \"number\" of logs you want to display: ")
-content = input()
-
-print("\n----------------------------------------\n")
-print("\nthe example logs is: \n")
-
-label, num = list(map(int, content.split(" ")))
-
-
-if num <= len(database[label]):
-    for log in database[label][0:num]:
-        print(log)
+    print("continue or exit? ")
+    flag = input()    
+    if flag == "exit":
+        break  
         
-else:
-    for log in database[label]:
-        print(log)
-print("\n----------------------------------------\n")        
         

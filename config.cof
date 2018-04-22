@@ -1,0 +1,47 @@
+# MAIN function
+[CLUSTER]
+filename = "GX01-USG5530-1"    
+clusters = 10
+max = 0.95
+min = 5
+chars = ["-","\.","/","_","%%"]
+
+# Counting function
+[COUNTING]
+filename = "GX01-USG5530-1"    
+clusters = 10
+chars = ["-","\.","/","_","%%"]
+threshold = 10
+num = 5 
+
+
+# filename: string 
+#               the name of log file you want to deal with
+#
+# clusters: int
+#       the number of cluster you want to get
+#
+# max: float in range [0.0, 1.0] or int, default=1.0, 
+#       When building the vocabulary ignore terms that have a 
+#       document frequency strictly higher than the given threshold 
+#       (corpus-specific stop words). If float, the parameter 
+#       represents a proportion of documents, integer absolute counts.
+#
+# min: float in range [0.0, 1.0] or int, default=1
+#       When building the vocabulary ignore terms that have a document 
+#       frequency strictly lower than the given threshold. This value 
+#       is also called cut-off in the literature. If float, the parameter 
+#       represents a proportion of documents, integer absolute counts. 
+#
+# chars: list of string, the chars not used for split log
+#
+# threshold: int 
+#        if the frequent of a word is lower than hreshold, we define this 
+#        word as low-frequency words
+#
+#
+# num: int 
+#        if the number of low-frequency words in a log is larger than this parameter, 
+#        we define this log as abnormal  
+#
+#
