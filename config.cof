@@ -1,6 +1,6 @@
 # MAIN function
 [CLUSTER]
-filename = "GX01-USG5530-1"    
+filename = "analysis.log"    
 clusters = 10
 max = 0.95
 min = 5

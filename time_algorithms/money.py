@@ -45,8 +45,8 @@ def get_logs(from_time, to_time):
     for item in es_option_dict["valid_dataset"]:
         musts.append(QueryStringQuery(item[1], item[0]))
 
-    for item in influencer_option_dict["influencers"]:
-        musts.append(QueryStringQuery(item[1], item[0]))
+    #for item in influencer_option_dict["influencers"]:
+    #    musts.append(QueryStringQuery(item[1], item[0]))
 
     q = BoolQuery(must=musts)
 
@@ -105,22 +105,31 @@ def get_all():
         # 30min 的时间里所有的 log
         span_logs = []
         print(time_series[i])
-        five_min_time_series = pd.date_range(
-            time_series[i], time_series[i + 1], freq='5min')
+        one_min_time_series = pd.date_range(
+            time_series[i], time_series[i+1], freq='5min')
 
-        for j in range(five_min_time_series.size - 1):
-            start_time = five_min_time_series[j]
-            end_time = five_min_time_series[j + 1]
+        for j in range(one_min_time_series.size - 1):
+            start_time = one_min_time_series[j]
+            end_time = one_min_time_series[j + 1]
+            xx = []
             try:
-                logs = list(get_logs(start_time, end_time))
+                logs = get_logs(start_time, end_time)
+                for log in logs:
+                    xx.append(log)
+
+                
             except:
                 logs = []
 
+            """    
             if len(logs) == 0:
                 continue
             else:
                 span_logs = span_logs + logs
 
+            span_logs = []
+            """
+        """    
         if len(span_logs) == 0:
             for detecter in detecter_option_dict["detecters"]:
                 all_results[detecter[1]].append(0)
@@ -131,7 +140,7 @@ def get_all():
             all_results[key].append(value)
 
     times_series = create_times_series(all_results)
-
+    """
     return times_series
 
 
@@ -181,10 +190,11 @@ def get_period_times_series(times_series):
 
     # 每天48个数据的总平均
     day_mean = times_series.resample('D').mean()
-
     # 观察每天48个数据点对于总平均值的偏离程度
     for i, day in enumerate(day_mean.index):
         date_index = str(day.date())
+        print(times_series[date_index])
+
         times_series[date_index] = (
             times_series[date_index] - day_mean.iloc[i]) / day_mean.iloc[i]
 
@@ -195,12 +205,10 @@ def get_period_times_series(times_series):
 
 
 def dynamic_threshold(times_series,n):
+
     times_series = (times_series - times_series.shift(1).rolling(n).mean()
                     ) / times_series.shift(1).rolling(n).std()
 
-    #times_series["score"] = times_series.sum(1)
-    #result = times_series[times_series["count"] > 2.5]
-    #print(result)
     return times_series
 
 
@@ -236,21 +244,32 @@ def visual(all_results):
 
 
 if __name__ == '__main__':
-
+    
     es_option_dict = get_parameters("ES")
     influencer_option_dict = get_parameters("INFLUENCERS")
     detecter_option_dict = get_parameters("DETETERS")
     period_option_dict = get_parameters("PERIODISM")
 
-    """
+    #start = "2017-10-01T02:00:00"
+    #end = "2017-10-31T03:00:00"
+    #logs = get_logs(start,end)
+    #print(logs.total)
+    #xx = []
+    #for log in logs[1:10000]:
+    #    xx.append(log)
+
+    #exit()
+
+    
+
+
     times_series = get_all()
     with open("times_series.pkl","wb") as f:
         pickle.dump(times_series,f)
     """
     with open("times_series.pkl", "rb") as f:
         times_series = pickle.load(f)
-
+    """
+    #print(times_series)    
     times_series = get_period_times_series(times_series)
-    print(times_series)
-
-    dynamic_threshold(times_series)
+    dynamic_threshold(times_series, 10)

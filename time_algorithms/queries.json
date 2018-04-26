@@ -1,0 +1,62 @@
+request_data = {
+
+        "content": {
+            "size": 10000,
+            "query": {
+                "bool": {
+                    "must": [{
+                        "match": {
+                            "operation": "BettingCardAddBalance"
+                        }
+                    }, {
+                        "match": {
+                            "status": "NO_EXCEPTION"
+                        }
+                    }, {
+                        "range": {
+                            "@timestamp": {
+                                "gte": "2017-11-01T00:00:00",
+                                "lte": "2017-11-01T00:00:00"
+                            }
+                        }
+                    }]
+                }
+            },
+            "sort": "@timestamp",
+            "_source": ["@timestamp", "hallnum", "account", "posid", "BettingCardAddBalance"]
+
+        },
+        "index": "logstash-management*"
+    }
+
+    number_of_hullnum = {
+        "size": 0,
+        "aggs": {
+            "stores_total": {
+                "cardinality": {
+                    "field": "hallnum.keyword"
+                }
+            }
+        }
+    }
+
+    groupby_hullnum = {
+        "size": 0,
+        "aggs": {
+            "group": {
+                "terms": {
+                    "field": "hallnum.keyword",
+                    "size": 10
+                },
+                "aggs": {
+                    "user_total": {
+                        "cardinality": {
+                            "field": "account.keyword"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    

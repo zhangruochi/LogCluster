@@ -30,19 +30,21 @@ except ImportError:
 
 
 def get_options():
-        cf = ConfigParser.ConfigParser()
+    cf = ConfigParser.ConfigParser()
 
-        if os.path.exists("config.cof"):
-            cf.read('config.cof')
-        else:
-            print("there is no config.cof!")
-            exit()
+    if os.path.exists("config.cof"):
+        cf.read('config.cof')
+    else:
+        print("there is no config.cof!")
+        exit()
 
-        option_dict = dict()
-        for key, value in cf.items("CLUSTER"):
-            option_dict[key] = eval(value)
+    option_dict = dict()
+    for key, value in cf.items("CLUSTER"):
+        option_dict[key] = eval(value)
 
-        return option_dict
+    return option_dict
+
+
 """
 def convert_chars(raw_chars):
     chars = []
@@ -73,6 +75,8 @@ def get_chars(raw_chars):
 """
 
 # 保存和读取中间文件
+
+
 def save_object(name, object):
     with open("{}_{}_cache/{}.pkl".format(filename, clusters, name), "wb") as f:
         pickle.dump(object, f)
@@ -91,14 +95,13 @@ def save_txt(name, object):
             f.write("\n")
 
 
-
 # 清洗无用字符,用"_"代替非单词字符
-def clear_log(line,chars):
+def clear_log(line, chars):
 
     pattern_one = re.compile("[0-9]+")
-    pattern_two = re.compile("|".join(chars))  #可以给定需要保留的参数
+    pattern_two = re.compile("|".join(chars))  # 可以给定需要保留的参数
 
-    tmp_line = re.sub(pattern_one, "0", line) 
+    tmp_line = re.sub(pattern_one, "0", line)
     clearned_line = re.sub(pattern_two, "_", tmp_line).strip(" ").strip("_")
 
     return clearned_line
@@ -114,23 +117,23 @@ def load_log(filename):
             line = f.readline()
             if len(line) == 0:
                 break
-            #print(line)
-            cleared_line = clear_log(line,chars)
+            # print(line)
+            cleared_line = clear_log(line, chars)
 
             documents.append(cleared_line)
             if count % 5000 == 0:
                 print(count)
 
-    #print(len(documents))
-    #200688
+    # print(len(documents))
+    # 200688
 
     return documents
 
 
 # 使用 tf——idf 将文本处理成词频向量
-def tfidf_main(documents,max,min):
+def tfidf_main(documents, max, min):
 
-    vectorizer = CountVectorizer(max_df = max, min_df = min )
+    vectorizer = CountVectorizer(max_df=max, min_df=min)
     transformer = TfidfTransformer()
     tf = vectorizer.fit_transform(documents)
     tfidf_vectors = transformer.fit_transform(tf)
@@ -147,8 +150,6 @@ def tfidf_main(documents,max,min):
 
     save_txt("words", words)
     print("preprocessing finished......")
-    exit()
-
 
     return tfidf_vectors
 
@@ -185,7 +186,8 @@ def center_of_gravity(kmeans):
 
 # 使用聚类算法
 def kmeans_cluster(data, n_clusters):
-    kmeans = KMeans(init="k-means++",n_clusters=n_clusters,n_jobs = -1,random_state=0).fit(data)
+    kmeans = KMeans(init="k-means++", n_clusters=n_clusters,
+                    n_jobs=-1, random_state=0).fit(data)
     labels = kmeans.labels_
     centers = kmeans.cluster_centers_
 
@@ -193,20 +195,30 @@ def kmeans_cluster(data, n_clusters):
     # create_graph(node_list)
 
     assert(len(labels) == data.shape[0])
-    save_txt("centers", centers)
+    #save_txt("centers", centers)
 
     # save_txt("labels",labels)
 
     return labels
 
 
+def create_sub_files(database):
+    if not os.path.exists("{}_{}_cache/cluster_files".format(filename, clusters)):
+        os.mkdir("{}_{}_cache/cluster_files".format(filename, clusters))
+
+    for key, value in database.items():
+        with open("{}_{}_cache/cluster_files/cluster_{}.log".format(filename, clusters, key), "w") as f:
+            for log in value:
+                f.write(log)
+
+
 # 建立数据库
 def create_log_tag(labels, filename):
     label_dict = Counter(labels)
-    labels_info = sorted(label_dict.items(), key=lambda item: item[1])
 
+    labels_info = sorted(label_dict.items(), key=lambda item: item[1])
     # save_txt("{}_label".format(filename),labels_info)
-    save_object("labels_info", labels_info)
+    # save_object("labels_info", labels_info)
 
     database = defaultdict(list)
     index = 0
@@ -219,7 +231,8 @@ def create_log_tag(labels, filename):
             database[labels[index]].append(line)
             index += 1
 
-    save_object("database", database)
+    #save_object("database", database)
+    create_sub_files(database)
 
     return database, labels_info
 
@@ -268,13 +281,14 @@ def main():
         os.mkdir("{}_{}_cache".format(filename, clusters))
 
     documents = load_log(filename)
-    tfidf_vectors = tfidf_main(documents,max,min)
+    tfidf_vectors = tfidf_main(documents, max, min)
     labels = kmeans_cluster(tfidf_vectors, clusters)
     database, labels_info = create_log_tag(labels, filename)
     create_view(labels_info, database)
 
 
 if __name__ == '__main__':
+
     option_dict = get_options()
     filename = option_dict['filename']
     clusters = option_dict['clusters']
@@ -283,5 +297,3 @@ if __name__ == '__main__':
     chars = option_dict['chars']
 
     main()
-
-
