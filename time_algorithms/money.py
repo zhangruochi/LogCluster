@@ -182,14 +182,15 @@ def adjust(row, times_series):
         pass
 
 
-def get_period_times_series(times_series):
+def get_period_times_series(times_series, period = "D"):
     offset = timedelta(days=1)
     raw_times_series = times_series.copy(deep=True)
     # print(times_series.resample('D').mean())
     times_series.apply(func=adjust, axis=1, args=(times_series,))
 
-    # 每天48个数据的总平均
-    day_mean = times_series.resample('D').mean()
+    # 一段时间的总平均(day or week)
+    day_mean = times_series.resample(period).mean()
+
     # 观察每天48个数据点对于总平均值的偏离程度
     for i, day in enumerate(day_mean.index):
         date_index = str(day.date())

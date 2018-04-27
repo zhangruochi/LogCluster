@@ -8,6 +8,7 @@ import pickle
 import dateutil
 from datetime import timedelta
 from elasticsearch import Elasticsearch
+from matplotlib import pyplot as plt
 
 
 def connect_es(ip, port):
@@ -16,8 +17,23 @@ def connect_es(ip, port):
     return es
 
 
+#创建有效时间内的时间序列
 def create_time_series(time_index, value_dict):
+
+    valid_days = list(Counter([str(item).split(" ")[0] for item in time_index]).keys())
+
+    valid_day_time = None
+
+    for day in valid_days:
+        tmp = pd.date_range("{} 10:00:00+00:00".format(day),"{} 21:30:00+00:00".format(day),freq="30min")
+        if valid_day_time is None:
+            valid_day_time = tmp
+        else:
+            valid_day_time = valid_day_time.append(tmp)
+
     time_series = pd.DataFrame(data=value_dict, index=time_index)
+    time_series = time_series[time_index.isin(valid_day_time)]  #去掉无用时间
+
     return time_series
 
 
@@ -33,52 +49,50 @@ def adjust(row, times_series):
     return row
 
 # 周期调整值
-
-
-def get_period_times_series(times_series):
+def add_n_day_period(times_series, ndays):
     offset = timedelta(days=1)
-    raw_times_series = times_series.copy(deep=True)
+    bias = times_series.copy(deep=True)
 
-    times_series = times_series.apply(
+    bias = bias.apply(
         func=adjust, axis=1, args=(times_series,))
 
-    # 每天48个数据的总平均
-    day_mean = times_series.resample('1D').mean()
+    # n 天的总平均
+    days_mean = bias.resample('{}D'.format(ndays)).mean()
 
-    # 观察每天48个数据点对于总平均值的偏离程度
-    for i, day in enumerate(day_mean.index):
-        date_index = str(day.date())
-        times_series[date_index] = (
-            times_series[date_index] - day_mean.iloc[i]) / day_mean.iloc[i]
+    # 观察 n 个数据点对于总平均值的偏离程度
+    for i, days in enumerate(days_mean.index):
+        days_index = str(days.date())
+        bias[days_index] = (bias[days_index] - days_mean.iloc[i]) / days_mean.iloc[i]
 
     # 添加周期调整值之后的 times_series
-    new_times_series = (raw_times_series / (1 + times_series)).dropna(axis=0)
+    new_times_series = (times_series / (1 + bias))
     return new_times_series
 
 
-def dynamic_threshold(times_series, n):
+def dynamic_threshold(times_series, window):
+
     eps = 1e-7
     numerator = times_series - times_series.rolling(
-        n, min_periods=1).mean()
+        window, min_periods= 1).mean()
     numerator[numerator < eps] = 0
 
-    denumerator = times_series.rolling(n, min_periods=1).std()
+    denumerator = times_series.rolling(window, min_periods= 100).std()
     denumerator[denumerator < eps] = 0
 
-    times_series_z_score = numerator/denumerator
+    times_series_z_score = (numerator / denumerator).fillna(value=0, axis=0)
 
     return times_series_z_score
 
 
-def get_z_score_for_one_group(time_series_for_one_group, n_points):
+def get_z_score_for_one_group(time_series_for_one_group, window, ndays):
 
-    period_times_series = get_period_times_series(time_series_for_one_group)
-    times_series_z_score = dynamic_threshold(period_times_series, n_points)
+    period_times_series = add_n_day_period(time_series_for_one_group, ndays)
+    times_series_z_score = dynamic_threshold(period_times_series, window)
 
     return times_series_z_score
 
 
-def deal_reponse(response, n_points):
+def deal_reponse(response, window, ndays):
     result_dict = {}
     offset = timedelta(hours=8)
 
@@ -99,7 +113,7 @@ def deal_reponse(response, n_points):
             time_index, value_dict)
 
         result_dict[hullnum["key"]] = get_z_score_for_one_group(
-            time_series_for_one_group, n_points)
+            time_series_for_one_group, window, ndays)
     return result_dict
 
 
@@ -108,15 +122,37 @@ def main(query):
     port = 9200
     query = query
     # http_auth = ('admin', 'adminxdstar123456')
-    n_points = 10
+    window = 100
+    ndays = 1
 
     es = connect_es(ip, port)
     response = es.search(
         index=query['index'], body=query['content'])
 
-    result_dict = deal_reponse(response, n_points)
+    result_dict = deal_reponse(response, window, ndays)
 
     return result_dict
+
+
+def visual(result_dict):
+    plt.figure(1, figsize=(20, 5))
+
+    keys_list = list(map(str, result_dict.keys()))
+    values = list(result_dict.values())
+
+    x = list(range(values[0].shape[0]))
+
+    plt.plot(x, values[0], color="#FF4040", label="hullnum = {}".format(keys_list[0]))
+    plt.plot(x, values[1], color="#ADFF2F", label="hullnum = {}".format(keys_list[1]))
+    plt.plot(x, values[2], color="#66CD00", label="hullnum = {}".format(keys_list[2]))
+    plt.plot(x, values[3], color="#0000FF", label="hullnum = {}".format(keys_list[3]))
+    # plt.plot(x, values[4], color = "#A9A9A9", label = keys_list[3])
+
+    plt.legend(loc='upper center', ncol=4, fontsize=6)
+    plt.title("SUM (period = 1 days, rolling window = 100 points)")
+    # plt.ylim(2.5,3)
+
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -138,7 +174,7 @@ if __name__ == '__main__':
                         "range": {
                             "@timestamp": {
                                 "gte": "2018-02-01T00:00:00",
-                                "lt": "2018-02-15T23:59:59"
+                                "lt": "2018-02-15T00:00:00"
                             }
                         }
                     }]
@@ -149,7 +185,7 @@ if __name__ == '__main__':
                 "all_hullnums": {
                     "terms": {
                         "field": "hallnum",
-                        "size": 1
+                        "size": 5
                     },
                     "aggs": {
                         "time_spans": {
@@ -181,5 +217,14 @@ if __name__ == '__main__':
 
     # 此时的 list 是每个 hullnum 所有30min 时间段的 aggregation 值
     # response["aggregations"]["all_hullnums"]['buckets'][0]["time_spans"]["buckets"]
+
     result_dict = main(query)
-    print(result_dict[563002])
+
+    with open("result_dict.pkl","wb") as f:
+        pickle.dump(result_dict,f)
+
+
+    with open("result_dict.pkl", "rb") as f:
+        result_dict = pickle.load(f)
+
+    visual(result_dict)

@@ -1,15 +1,12 @@
+
 import pandas as pd
 import numpy as np
 
+df = pd.DataFrame(np.random.randn(10,6))
 
-def plus(df, n):
-    df['c'] = (df['a'] + df['b'])
-    df['d'] = (df['a'] + df['b']) * n
-    #return df
+df.iloc[1:3,1] = np.nan
+df.iloc[5,3] = np.nan
+df.iloc[7:9,5] = np.nan
+print(df)
 
-
-list1 = [[1, 3], [7, 8], [4, np.nan]]
-df1 = pd.DataFrame(list1, columns=['a', 'b'])
-
-df2 = pd.DataFrame(list1, columns=['a', 'b'])
-print(df1[["a"]]/df2[["a"]])
+print(df.isnull().any())
