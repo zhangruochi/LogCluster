@@ -227,4 +227,5 @@ if __name__ == '__main__':
     with open("result_dict.pkl", "rb") as f:
         result_dict = pickle.load(f)
 
+    print(result_dict)    
     visual(result_dict)
