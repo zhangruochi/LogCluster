@@ -1,4 +1,5 @@
 import jieba
+import jieba.posseg as psg
 from sklearn import feature_extraction
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import CountVectorizer
@@ -23,14 +24,15 @@ def load_docs(path):
     return docs[0:-1]
 
 
+
 def segmentation(docs, stop_words_set):
-    punctuations = "[\s+\.\!\/_,$%^*(+\"\']+|[+——！，。？、~@#￥%……&*（）]+"
+    punctuations = "[\s+\.\!\/_,$%^*(+\"\']+|[+——！，。？、~@#￥%……&*（）]+' '"
     corpus = []
     for doc in docs:
-        seg_list = jieba.cut(doc, cut_all=False)
+        seg_list = psg.cut(doc)
         tmp_list = []
         for term in seg_list:
-            if str(term) not in punctuations and str(term) not in stop_words_set and str(term) != " ":
+            if term.word not in punctuations and term.word not in stop_words_set:
                 tmp_list.append(term)
         if len(tmp_list) == 0:
             continue
@@ -64,11 +66,8 @@ def lda(corpus):
 
 def main():
     docs_path = "docs.txt"
-    docs = load_docs(docs_path)
-    stop_words_path = "stopwords.txt"
-    stop_words = get_stop_words_set(stop_words_path)
-    corpus = segmentation(docs, stop_words)
-    lda(corpus)
+    docs = load_one_doc(docs_path)
+    print(docs)
 
 
 if __name__ == '__main__':
