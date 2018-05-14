@@ -14,20 +14,27 @@ def load_docs(path):
         while(True):
             doc = f.readline()
             if doc:
-                doc = doc.strip("\n").strip("。")
+                doc = doc.strip("\n")
                 if len(doc) > 0:
                     docs.append(doc)
             else:
                 break
+
     return docs[0:-1]
 
 
 def segmentation(docs, stop_words_set):
+    punctuations = "[\s+\.\!\/_,$%^*(+\"\']+|[+——！，。？、~@#￥%……&*（）]+"
     corpus = []
     for doc in docs:
         seg_list = jieba.cut(doc, cut_all=False)
-        corpus.append(
-            [term for term in seg_list if str(term) not in stop_words_set])
+        tmp_list = []
+        for term in seg_list:
+            if str(term) not in punctuations and str(term) not in stop_words_set and str(term) != " ":
+                tmp_list.append(term)
+        if len(tmp_list) == 0:
+            continue
+        corpus.append(tmp_list)
     return corpus
 
 
@@ -60,9 +67,7 @@ def main():
     docs = load_docs(docs_path)
     stop_words_path = "stopwords.txt"
     stop_words = get_stop_words_set(stop_words_path)
-
     corpus = segmentation(docs, stop_words)
-    # print(corpus)
     lda(corpus)
 
 
