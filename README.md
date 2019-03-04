@@ -1,6 +1,6 @@
-This package includes some scripts related to log clustering
+## log clustering project
 
-## file specification
+### file specification
 
 **cluster.py** 
 - implement log clustering 
@@ -20,7 +20,7 @@ This package includes some scripts related to log clustering
 - the config file
 
 
-## parameters specification of config.cof
+### parameters specification of config.cof
 - **filename**: 
     1. string 
     2. the name of log file you want to deal with
@@ -44,7 +44,6 @@ This package includes some scripts related to log clustering
 - **threshold**: 
   1. int 
   2. if the frequent of a word is lower than hreshold, we define this word as low-frequency words
-
 
 - **num**: 
     1. int 
